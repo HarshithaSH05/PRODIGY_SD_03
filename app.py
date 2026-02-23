@@ -1,176 +1,194 @@
 import streamlit as st
-import re
 import json
 import os
+import re
 from datetime import datetime
 
-st.set_page_config(
-    page_title="Smart Contact Manager",
-    page_icon="📇",
-    layout="wide"
-)
+st.set_page_config(page_title="Smart Contact Manager", layout="wide")
 
 DATA_FILE = "contacts.json"
 
-# ----------------------------
-# Load & Save
-# ----------------------------
+# ==============================
+# Styling (Purple → Blue SaaS)
+# ==============================
+st.markdown("""
+<style>
+body {
+    background: linear-gradient(135deg, #6C63FF, #3A8DFF);
+}
+
+.header {
+    background: linear-gradient(90deg, #6C63FF, #3A8DFF);
+    padding: 25px;
+    border-radius: 18px;
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    color: white;
+}
+
+.stButton>button {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.stTextInput>div>div>input {
+    border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ==============================
+# Utility Functions
+# ==============================
 def load_contacts():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     return []
 
-def save_contacts(contacts):
+def save_contacts(data):
     with open(DATA_FILE, "w") as f:
-        json.dump(contacts, f, indent=4)
+        json.dump(data, f, indent=4)
+
+def valid_email(email):
+    return re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email)
+
+def valid_phone(phone):
+    return re.match(r'^\+?[0-9]{7,15}$', phone)
 
 contacts = load_contacts()
 
-# ----------------------------
-# Validation Functions
-# ----------------------------
-def is_valid_email(email):
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    return re.match(pattern, email)
+# ==============================
+# Header
+# ==============================
+st.markdown("""
+<div class="header">
+    <h1>📇 Smart Contact Manager</h1>
+    <p>Modern SaaS Style Contact Management System</p>
+</div>
+""", unsafe_allow_html=True)
 
-def is_valid_phone(phone):
-    return phone.isdigit() and len(phone) >= 7
+tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "👥 Contacts", "➕ Add Contact"])
 
-# ----------------------------
-# Sidebar Navigation
-# ----------------------------
-st.sidebar.title("📁 Menu")
-menu = st.sidebar.radio("Select Option", [
-    "🏠 Dashboard",
-    "➕ Add Contact",
-    "🔍 Search Contact",
-    "✏ Edit Contact",
-    "🗑 Delete Contact",
-    "📊 Sort Contacts"
-])
-
-# ----------------------------
+# ==============================
 # Dashboard
-# ----------------------------
-if menu == "🏠 Dashboard":
-    st.title("📇 Smart Contact Manager")
-    st.subheader("Professional Contact Management System")
-
-    col1, col2 = st.columns(2)
-
-    col1.metric("Total Contacts", len(contacts))
-    col2.metric("Last Updated", datetime.now().strftime("%d %b %Y"))
-
-    st.markdown("---")
-
+# ==============================
+with tab1:
+    st.metric("Total Contacts", len(contacts))
     if contacts:
-        st.dataframe(contacts, use_container_width=True)
-    else:
-        st.info("No contacts available yet.")
+        st.write("Recently Added:")
+        st.success(contacts[-1]["Name"])
 
-# ----------------------------
+# ==============================
 # Add Contact
-# ----------------------------
-elif menu == "➕ Add Contact":
-    st.title("➕ Add New Contact")
+# ==============================
+with tab3:
+    st.subheader("Add New Contact")
 
     name = st.text_input("Full Name")
-    phone = st.text_input("Phone Number")
+    phone = st.text_input("Phone Number (+Country Code)")
     email = st.text_input("Email Address")
 
     if st.button("Save Contact"):
         if not name.strip():
-            st.error("Please enter full name.")
-        elif not is_valid_phone(phone):
-            st.error("Enter valid phone number.")
-        elif not is_valid_email(email):
-            st.error("Enter valid email address.")
+            st.warning("Please enter full name.")
+        elif not valid_phone(phone):
+            st.warning("Enter valid phone (7–15 digits, optional +).")
+        elif not valid_email(email):
+            st.warning("Enter valid email.")
+        elif any(c["Phone"] == phone or c["Email"] == email for c in contacts):
+            st.warning("Contact already exists.")
         else:
             contacts.append({
                 "Name": name,
                 "Phone": phone,
-                "Email": email
+                "Email": email,
+                "Added": str(datetime.now())
             })
             save_contacts(contacts)
-            st.success("Contact added successfully!")
+            st.success("Contact Added Successfully ✅")
+            st.button("Add Another Contact")
 
-# ----------------------------
-# Search Contact
-# ----------------------------
-elif menu == "🔍 Search Contact":
-    st.title("🔍 Search Contact")
+# ==============================
+# Contacts (Search + Sort + Edit + Delete)
+# ==============================
+with tab2:
+    st.subheader("Your Contacts")
 
-    search_term = st.text_input("Enter name to search")
+    search = st.text_input("🔍 Search by name, phone, or email")
 
-    if search_term:
-        results = [
+    sort_option = st.selectbox("Sort By", [
+        "Name (A-Z)",
+        "Name (Recently Added)",
+        "Phone (Ascending)",
+        "Phone (Descending)",
+        "Email (Alphabetical)"
+    ])
+
+    filtered = contacts.copy()
+
+    if search:
+        filtered = [
             c for c in contacts
-            if search_term.lower() in c["Name"].lower()
+            if search.lower() in c["Name"].lower()
+            or search in c["Phone"]
+            or search.lower() in c["Email"].lower()
         ]
 
-        if results:
-            st.dataframe(results, use_container_width=True)
-        else:
-            st.warning("No matching contact found.")
+    if sort_option == "Name (A-Z)":
+        filtered.sort(key=lambda x: x["Name"])
+    elif sort_option == "Name (Recently Added)":
+        filtered.sort(key=lambda x: x["Added"], reverse=True)
+    elif sort_option == "Phone (Ascending)":
+        filtered.sort(key=lambda x: x["Phone"])
+    elif sort_option == "Phone (Descending)":
+        filtered.sort(key=lambda x: x["Phone"], reverse=True)
+    elif sort_option == "Email (Alphabetical)":
+        filtered.sort(key=lambda x: x["Email"])
 
-# ----------------------------
-# Edit Contact
-# ----------------------------
-elif menu == "✏ Edit Contact":
-    st.title("✏ Edit Contact")
-
-    if not contacts:
-        st.warning("No contacts available.")
+    if not filtered:
+        st.info("No contacts found.")
     else:
-        names = [c["Name"] for c in contacts]
-        selected_name = st.selectbox("Select Contact", names)
+        for idx, c in enumerate(filtered):
+            st.markdown(f"""
+            <div class="card">
+                <b>{c['Name']}</b><br>
+                📞 {c['Phone']}<br>
+                📧 {c['Email']}
+            </div>
+            """, unsafe_allow_html=True)
 
-        contact = next(c for c in contacts if c["Name"] == selected_name)
+            col1, col2 = st.columns(2)
 
-        new_name = st.text_input("Full Name", contact["Name"])
-        new_phone = st.text_input("Phone", contact["Phone"])
-        new_email = st.text_input("Email", contact["Email"])
+            # Edit
+            if col1.button(f"Edit {idx}"):
+                new_name = st.text_input("Edit Name", c["Name"], key=f"name{idx}")
+                new_phone = st.text_input("Edit Phone", c["Phone"], key=f"phone{idx}")
+                new_email = st.text_input("Edit Email", c["Email"], key=f"email{idx}")
 
-        if st.button("Update Contact"):
-            if not new_name.strip():
-                st.error("Invalid name.")
-            elif not is_valid_phone(new_phone):
-                st.error("Invalid phone.")
-            elif not is_valid_email(new_email):
-                st.error("Invalid email.")
-            else:
-                contact["Name"] = new_name
-                contact["Phone"] = new_phone
-                contact["Email"] = new_email
-                save_contacts(contacts)
-                st.success("Contact updated!")
+                if st.button(f"Update {idx}"):
+                    if valid_phone(new_phone) and valid_email(new_email):
+                        c["Name"] = new_name
+                        c["Phone"] = new_phone
+                        c["Email"] = new_email
+                        save_contacts(contacts)
+                        st.success("Updated Successfully")
+                    else:
+                        st.warning("Invalid data.")
 
-# ----------------------------
-# Delete Contact
-# ----------------------------
-elif menu == "🗑 Delete Contact":
-    st.title("🗑 Delete Contact")
-
-    if not contacts:
-        st.warning("No contacts available.")
-    else:
-        names = [c["Name"] for c in contacts]
-        selected_name = st.selectbox("Select Contact", names)
-
-        if st.button("Delete"):
-            contacts = [c for c in contacts if c["Name"] != selected_name]
-            save_contacts(contacts)
-            st.success("Contact deleted!")
-
-# ----------------------------
-# Sort Contacts
-# ----------------------------
-elif menu == "📊 Sort Contacts":
-    st.title("📊 Sort Contacts")
-
-    if not contacts:
-        st.warning("No contacts to be sorted.")
-    else:
-        sorted_contacts = sorted(contacts, key=lambda x: x["Name"])
-        st.dataframe(sorted_contacts, use_container_width=True)
+            # Delete with confirmation
+            if col2.button(f"Delete {idx}"):
+                confirm = st.checkbox("Confirm Delete", key=f"confirm{idx}")
+                if confirm:
+                    contacts.remove(c)
+                    save_contacts(contacts)
+                    st.success("Deleted Successfully")
