@@ -1,29 +1,24 @@
 #  Smart Contact Manager
 
-A professional web-based Contact Management System built using Streamlit.
+A modern SaaS-style Contact Management Web Application built using Streamlit.
 
 ##  Features
 
-- Add Contact
-- Search Contact
-- Edit Contact
-- Delete Contact
-- Sort Contacts
-- Modern Dashboard UI
-- Data Persistence using JSON
-- Input Validation
-- Professional Dark Theme
+- Add Contact with Global Phone Validation
+- Prevent Duplicate Entries
+- Search by Name / Phone / Email
+- Smart Sorting (Name, Recently Added, Phone, Email)
+- Edit & Delete with Confirmation
+- Modern Gradient UI
+- Glassmorphism Card Design
+- JSON-based Local Data Storage
 
 ##  Tech Stack
 
 - Python
 - Streamlit
-- JSON (Local Database)
+- JSON (Local Storage)
 
-##  Live Demo
+##  Deployment
 
-Deployed using Streamlit Cloud.
-
-## 👩‍💻 Developed By
-
-Harshitha SH
+Deploy easily using Streamlit Cloud.
