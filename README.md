@@ -32,4 +32,8 @@ Contacts are stored using JSON file storage for persistent data.
 - Streamlit
 - JSON (Local Storage)
 
+## Live Demo
+The application is deployed and accessible here:
+
+https://appigysd02-eemd9vwgmy7y6tsvomfzyb.streamlit.app/
 
