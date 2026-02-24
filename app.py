@@ -2,288 +2,183 @@ import streamlit as st
 import json
 import os
 import re
+import pandas as pd
 
-FILE_NAME = "contacts.json"
+FILE = "contacts.json"
 
-
-# ---------- FILE ----------
-
+# ---------- Load Contacts ----------
 def load_contacts():
-    if os.path.exists(FILE_NAME):
-        with open(FILE_NAME, "r") as f:
+    if os.path.exists(FILE):
+        with open(FILE, "r") as f:
             return json.load(f)
     return []
 
+# ---------- Save Contacts ----------
+def save_contacts(data):
+    with open(FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
-def save_contacts(contacts):
-    contacts.sort(key=lambda x: x["name"].lower())
-    with open(FILE_NAME, "w") as f:
-        json.dump(contacts, f, indent=4)
+contacts = load_contacts()
 
+st.title("📇 Contact Management App")
 
-# ---------- VALIDATION ----------
+# ---------- Session State ----------
+if "page" not in st.session_state:
+    st.session_state.page = "View"
 
-def validate_name(name):
-    return name.strip() if name.strip() else None
+# ---------- Navigation Buttons ----------
+col1, col2, col3, col4 = st.columns(4)
 
+with col1:
+    if st.button("📋 View Contacts"):
+        st.session_state.page = "View"
 
-def normalize_phone(phone):
+with col2:
+    if st.button("+ New Contact"):
+        st.session_state.page = "Add"
+        st.session_state.name = ""
+        st.session_state.phone = ""
+        st.session_state.email = ""
 
-    phone = phone.strip().replace(" ", "").replace("-", "")
+with col3:
+    if st.button("✏ Edit Contact"):
+        st.session_state.page = "Edit"
 
-    if phone.startswith("+"):
-        digits = phone[1:]
-        if digits.isdigit() and 7 <= len(digits) <= 15:
-            return "+" + digits
-
-    elif phone.isdigit() and 7 <= len(phone) <= 15:
-        return phone
-
-    return None
-
-
-def validate_email(email):
-
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    email=email.strip().lower()
-
-    if re.match(pattern,email):
-        return email
-
-    return None
+with col4:
+    if st.button("🗑 Delete Contact"):
+        st.session_state.page = "Delete"
 
 
-# ---------- LOAD ----------
-
-contacts=load_contacts()
-
-st.set_page_config(
-    page_title="Contact Manager",
-    layout="wide"
-)
-
-st.title("📇 Contact Manager")
-
-
-menu=st.sidebar.radio(
-    "Menu",
-    ["Add Contact","View Contacts","Search","Edit Contact","Delete Contact"]
-)
-
-
-# ---------- ADD ----------
-
-if menu=="Add Contact":
-
-    st.subheader("Add Contact")
-
-    if "reset" not in st.session_state:
-        st.session_state.reset=False
-
-    if st.session_state.reset:
-        st.session_state.reset=False
-
-
-    name=st.text_input("Name")
-
-    phone=st.text_input("Phone (7-15 digits)")
-
-    email=st.text_input("Email")
-
-
-    col1,col2=st.columns(2)
-
-
-    if col1.button("Save"):
-
-        n=validate_name(name)
-        p=normalize_phone(phone)
-        e=validate_email(email)
-
-        if not n:
-            st.error("Invalid Name")
-
-        elif not p:
-            st.error("Phone must be 7-15 digits")
-
-        elif not e:
-            st.error("Invalid Email")
-
-        else:
-
-            contacts.append({
-                "name":n,
-                "phone":p,
-                "email":e
-            })
-
-            save_contacts(contacts)
-
-            st.success("Saved Successfully")
-
-
-    if col2.button("+ New Contact"):
-
-        st.session_state.reset=True
-        st.rerun()
-
-
-# ---------- VIEW ----------
-
-elif menu=="View Contacts":
+# ---------- VIEW CONTACTS ----------
+if st.session_state.page == "View":
 
     st.subheader("All Contacts")
 
-    if not contacts:
-
-        st.warning("No contacts saved")
-
+    if contacts:
+        df = pd.DataFrame(contacts)
+        st.dataframe(df, use_container_width=True)
     else:
-
-        contacts.sort(key=lambda x:x["name"].lower())
-
-        for c in contacts:
-
-            col1,col2,col3=st.columns([2,2,3])
-
-            col1.write("**"+c["name"]+"**")
-            col2.write(c["phone"])
-            col3.write(c["email"])
-
-            st.divider()
+        st.info("No contacts available")
 
 
+# ---------- ADD CONTACT ----------
+elif st.session_state.page == "Add":
 
-# ---------- SEARCH ----------
+    st.subheader("Add Contact")
 
-elif menu=="Search":
+    name = st.text_input("Name", key="name")
+    phone = st.text_input("Phone Number", key="phone")
+    email = st.text_input("Email", key="email")
 
-    st.subheader("Search")
+    error = ""
 
-    keyword=st.text_input("Search")
+    # ---------- ADD BUTTON ----------
+    if st.button("Save Contact"):
 
-    if keyword:
+        if not name or not phone or not email:
+            error = "All fields required"
 
-        results=[
+        elif not phone.isdigit() or len(phone) != 10:
+            error = "Phone must be 10 digits"
 
-        c for c in contacts
+        elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            error = "Invalid Email"
 
-        if keyword.lower() in c["name"].lower()
-        or keyword in c["phone"]
-        or keyword.lower() in c["email"]
+        else:
 
-        ]
+            # Duplicate Check
+            for c in contacts:
 
+                if c["Name"].lower() == name.lower():
+                    error = "Name already exists"
 
-        for c in results:
+                if c["Phone"] == phone:
+                    error = "Phone already exists"
 
-            col1,col2,col3=st.columns([2,2,3])
+                if c["Email"].lower() == email.lower():
+                    error = "Email already exists"
 
-            col1.write("**"+c["name"]+"**")
-            col2.write(c["phone"])
-            col3.write(c["email"])
-
-            st.divider()
-
-
-
-# ---------- EDIT ----------
-
-elif menu=="Edit Contact":
-
-    st.subheader("Edit Contact")
-
-    search=st.text_input("Search contact")
-
-    filtered=[
-
-    c for c in contacts
-
-    if search.lower() in c["name"].lower()
-    or search in c["phone"]
-    or search.lower() in c["email"]
-
-    ] if search else contacts
-
-
-    for c in filtered:
-
-        if st.button(c["name"]+" | "+c["phone"]):
-
-            st.session_state.edit=c
-
-
-    if "edit" in st.session_state:
-
-        c=st.session_state.edit
-
-        st.subheader("Editing")
-
-        new_name=st.text_input("Name",c["name"])
-
-        new_phone=st.text_input("Phone",c["phone"])
-
-        new_email=st.text_input("Email",c["email"])
-
-
-        if st.button("Update"):
-
-            n=validate_name(new_name)
-            p=normalize_phone(new_phone)
-            e=validate_email(new_email)
-
-            if n and p and e:
-
-                c["name"]=n
-                c["phone"]=p
-                c["email"]=e
+            if error == "":
+                contacts.append({
+                    "Name": name,
+                    "Phone": phone,
+                    "Email": email
+                })
 
                 save_contacts(contacts)
 
-                st.success("Updated")
+                st.success("Contact Saved")
+
+    if error:
+        st.warning(error)
+
+
+    # ---------- ADD ANOTHER CONTACT ----------
+    if st.button("Add Another Contact"):
+
+        st.session_state.name = ""
+        st.session_state.phone = ""
+        st.session_state.email = ""
+
+        st.rerun()
 
 
 
-# ---------- DELETE ----------
+# ---------- EDIT CONTACT ----------
+elif st.session_state.page == "Edit":
 
-elif menu=="Delete Contact":
+    st.subheader("Edit Contact")
 
-    st.subheader("Delete Contact")
+    if contacts:
 
-    search=st.text_input("Search contact")
+        names = [c["Name"] for c in contacts]
 
-
-    filtered=[
-
-    c for c in contacts
-
-    if search.lower() in c["name"].lower()
-    or search in c["phone"]
-    or search.lower() in c["email"]
-
-    ] if search else contacts
-
-
-    for c in filtered:
-
-        if st.button("Delete "+c["name"]):
-
-            st.session_state.delete=c
-
-
-    if "delete" in st.session_state:
-
-        c=st.session_state.delete
-
-        st.warning(
-        "Delete "+c["name"]+" ?"
+        selected = st.selectbox(
+            "Select Contact",
+            names
         )
 
+        contact = next(c for c in contacts if c["Name"] == selected)
 
-        if st.button("Confirm Delete"):
+        name = st.text_input("Name", contact["Name"])
+        phone = st.text_input("Phone", contact["Phone"])
+        email = st.text_input("Email", contact["Email"])
 
-            contacts.remove(c)
+        if st.button("Update"):
+
+            contact["Name"] = name
+            contact["Phone"] = phone
+            contact["Email"] = email
 
             save_contacts(contacts)
 
-            st.success("Deleted")
+            st.success("Updated Successfully")
+
+    else:
+        st.info("No contacts available")
+
+
+# ---------- DELETE CONTACT ----------
+elif st.session_state.page == "Delete":
+
+    st.subheader("Delete Contact")
+
+    if contacts:
+
+        names = [c["Name"] for c in contacts]
+
+        selected = st.selectbox(
+            "Select Contact",
+            names
+        )
+
+        if st.button("Delete"):
+
+            contacts = [c for c in contacts if c["Name"] != selected]
+
+            save_contacts(contacts)
+
+            st.success("Deleted Successfully")
+
+    else:
+        st.info("No contacts available")
