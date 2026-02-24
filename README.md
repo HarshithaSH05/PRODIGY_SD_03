@@ -6,25 +6,16 @@ Contacts are stored using JSON file storage for persistent data.
 
 ##  Features
 
- Add Contacts
-
- View Contacts
-
- Search Contacts
-
- Edit Contacts
-
- Sort Contacts
-
- Delete Contacts (with confirmation)
-
- Duplicate warnings (Name, Phone, Email)
-
- Phone number validation (7–15 digits)
-
- Email validation
-
- Persistent storage using JSON
+- Add Contacts
+- View Contacts
+- Search Contacts
+- Edit Contacts
+- Sort Contacts
+- Delete Contacts (with confirmation)
+- Duplicate warnings (Name, Phone, Email)
+- Phone number validation (7–15 digits)
+- Email validation
+- Persistent storage using JSON
 
 ##  Tech Stack
 
