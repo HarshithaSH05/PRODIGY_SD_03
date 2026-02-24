@@ -261,18 +261,19 @@ elif menu == "Edit Contact":
 
 # ---------- DELETE CONTACT ----------
 
+# ---------- DELETE CONTACT ----------
+
 elif menu == "Delete Contact":
 
     st.title("🗑 Delete Contact")
 
-
     if not contacts:
-
         st.info("No contacts available")
 
     else:
 
-        search = st.text_input("Search contact")
+        # Search Bar
+        search = st.text_input("Search Contact (Name / Phone / Email)")
 
         filtered = [
 
@@ -285,41 +286,47 @@ elif menu == "Delete Contact":
         ] if search else contacts
 
 
-        names = [
+        if not filtered:
+            st.warning("No matching contacts")
 
-            f'{c["Name"]} | {c["Phone"]} | {c["Email"]}'
+        else:
 
-            for c in filtered
+            options = [
 
-        ]
+                f'{c["Name"]} | {c["Phone"]} | {c["Email"]}'
 
+                for c in filtered
 
-        selected = st.selectbox(
-            "Select Contact",
-            names
-        )
+            ]
 
 
-        if st.button("Delete"):
+            selected = st.selectbox(
+                "Select Contact to Delete",
+                options
+            )
 
-            index = names.index(selected)
+
+            index = options.index(selected)
 
             contact = filtered[index]
 
 
-            confirm = st.checkbox(
-                "Confirm Delete"
-            )
+            # Confirmation Checkbox
+            confirm = st.checkbox("Confirm Delete")
 
+
+            # Delete Button ONLY after checking box
             if confirm:
 
-                contacts.remove(contact)
+                if st.button("Delete Contact"):
 
-                save_contacts(contacts)
+                    contacts.remove(contact)
 
-                st.success("Deleted")
+                    save_contacts(contacts)
 
+                    st.success("✅ Successfully Deleted")
 
+                    st.rerun()
 
 # ---------- SORT CONTACT ----------
 
