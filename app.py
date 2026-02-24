@@ -260,74 +260,99 @@ elif menu == "Edit Contact":
 
 
 # ---------- DELETE CONTACT ----------
-
 # ---------- DELETE CONTACT ----------
 
 elif menu == "Delete Contact":
 
     st.title("🗑 Delete Contact")
 
+    # Show success message after deletion
+    if "delete_success" in st.session_state:
+        st.success("✅ Successfully Deleted")
+        del st.session_state["delete_success"]
+
     if not contacts:
         st.info("No contacts available")
 
     else:
 
-        # Search Bar
-        search = st.text_input("Search Contact (Name / Phone / Email)")
+        # -------- SEARCH BAR --------
 
-        filtered = [
+        search = st.text_input(
+            "Search Contact (Name / Phone / Email)"
+        )
 
-            c for c in contacts
+        # Filter contacts
+        if search:
 
-            if search.lower() in c["Name"].lower()
-            or search in c["Phone"]
-            or search.lower() in c["Email"].lower()
+            filtered_contacts = [
 
-        ] if search else contacts
+                c for c in contacts
 
+                if search.lower() in c["Name"].lower()
+                or search in c["Phone"]
+                or search.lower() in c["Email"].lower()
 
-        if not filtered:
-            st.warning("No matching contacts")
+            ]
 
         else:
+
+            filtered_contacts = contacts
+
+
+        # No match found
+        if not filtered_contacts:
+
+            st.warning("No matching contacts found")
+
+
+        else:
+
+            # -------- SELECT CONTACT --------
 
             options = [
 
                 f'{c["Name"]} | {c["Phone"]} | {c["Email"]}'
 
-                for c in filtered
+                for c in filtered_contacts
 
             ]
 
+            selected_contact = st.selectbox(
 
-            selected = st.selectbox(
                 "Select Contact to Delete",
+
                 options
+
             )
 
 
-            index = options.index(selected)
+            selected_index = options.index(selected_contact)
 
-            contact = filtered[index]
-
-
-            # Confirmation Checkbox
-            confirm = st.checkbox("Confirm Delete")
+            contact_to_delete = filtered_contacts[selected_index]
 
 
-            # Delete Button ONLY after checking box
-            if confirm:
+            # -------- CONFIRM CHECKBOX --------
+
+            confirm_delete = st.checkbox(
+                "Confirm Delete"
+            )
+
+
+            # -------- DELETE BUTTON --------
+
+            if confirm_delete:
 
                 if st.button("Delete Contact"):
 
-                    contacts.remove(contact)
+                    contacts.remove(contact_to_delete)
 
                     save_contacts(contacts)
 
-                    st.success("✅ Successfully Deleted")
+                    # Store message flag
+                    st.session_state["delete_success"] = True
 
                     st.rerun()
-
 # ---------- SORT CONTACT ----------
 
 elif menu == "Sort Contacts":
